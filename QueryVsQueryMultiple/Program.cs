@@ -28,52 +28,41 @@ namespace QueryVsQueryMultiple
         private readonly TestClass _benchClass = new TestClass();
 
         [Benchmark]
-        public void MultipleQuery() => _benchClass.MultipleQuery();
+        public void MultipleQuery()
+        {
+            _benchClass.MultipleQuery();
+        }
 
         [Benchmark]
-        public void QueryMultiple() => _benchClass.QueryMultiple();
+        public void QueryMultiple()
+        {
+            _benchClass.QueryMultiple();
+        }
     }
 
-    internal class TestClass
+    internal class TestClass : IDisposable
     {
         private readonly string _connString =
             "Server=.\\mssql2017;Database=Northwind;Trusted_Connection=True;MultipleActiveResultSets=true";
 
+        private readonly SqlConnection _sqlConnection;
+
         public TestClass()
         {
+            _sqlConnection = new SqlConnection(_connString);
         }
 
         public void MultipleQuery()
         {
-            Customer[] customers;
-            using (var conn = new SqlConnection(_connString))
-            {
-                customers = conn.Query<Customer>(@"SELECT * FROM Customers").ToArray();
-            }
+            var customers = _sqlConnection.Query<Customer>(@"SELECT * FROM Customers").ToArray();
 
-            Category[] categories;
-            using (var conn = new SqlConnection(_connString))
-            {
-                categories = conn.Query<Category>(@"SELECT * FROM Categories").ToArray();
-            }
+            var categories = _sqlConnection.Query<Category>(@"SELECT * FROM Categories").ToArray();
 
-            Employee[] employees;
-            using (var conn = new SqlConnection(_connString))
-            {
-                employees = conn.Query<Employee>(@"SELECT * FROM Employees").ToArray();
-            }
+            var employees = _sqlConnection.Query<Employee>(@"SELECT * FROM Employees").ToArray();
 
-            Order[] orders;
-            using (var conn = new SqlConnection(_connString))
-            {
-                orders = conn.Query<Order>(@"SELECT * FROM Orders").ToArray();
-            }
+            var orders = _sqlConnection.Query<Order>(@"SELECT * FROM Orders").ToArray();
 
-            OrderDetail[] orderDetails;
-            using (var conn = new SqlConnection(_connString))
-            {
-                orderDetails = conn.Query<OrderDetail>(@"SELECT * FROM [Order Details]").ToArray();
-            }
+            var orderDetails = _sqlConnection.Query<OrderDetail>(@"SELECT * FROM [Order Details]").ToArray();
         }
 
         public void QueryMultiple()
@@ -91,15 +80,18 @@ SELECT * FROM [Order Details]
             Order[]       orders;
             OrderDetail[] orderDetails;
 
-            using (var conn = new SqlConnection(_connString))
-            {
-                var queryResult = conn.QueryMultiple(sqlScript, null);
-                customers    = queryResult.Read<Customer>().ToArray();
-                categories   = queryResult.Read<Category>().ToArray();
-                employees    = queryResult.Read<Employee>().ToArray();
-                orders       = queryResult.Read<Order>().ToArray();
-                orderDetails = queryResult.Read<OrderDetail>().ToArray();
-            }
+
+            var queryResult = _sqlConnection.QueryMultiple(sqlScript, null);
+            customers    = queryResult.Read<Customer>().ToArray();
+            categories   = queryResult.Read<Category>().ToArray();
+            employees    = queryResult.Read<Employee>().ToArray();
+            orders       = queryResult.Read<Order>().ToArray();
+            orderDetails = queryResult.Read<OrderDetail>().ToArray();
+        }
+
+        public void Dispose()
+        {
+            _sqlConnection?.Dispose();
         }
     }
 }
